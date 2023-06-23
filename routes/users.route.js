@@ -1,6 +1,6 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
-const { Users, Tokens } = require("../models");
+const { Users } = require("../models");
 const router = express.Router();
 
 // 회원가입 API
