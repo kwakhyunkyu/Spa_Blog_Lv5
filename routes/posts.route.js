@@ -1,6 +1,6 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Posts, Comments, Like } = require('../models');
+const { Posts, Comments, Likes } = require('../models');
 const authMiddleware = require('../middlewares/auth-middleware');
 const router = express.Router();
 
@@ -144,28 +144,42 @@ router.get('/posts/:postId/comments', async (req, res) => {
   }
 });
 
-// 좋아요 생성 API
+// 좋아요 생성 또는 취소 API
 router.post('/posts/:postId/likes', authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { postId } = req.params;
 
-  const like = await Like.findOne({
-    where: {
+  try {
+    const existingLike = await Likes.findOne({
+      where: {
+        PostId: postId,
+        UserId: userId,
+      },
+    });
+
+    if (existingLike) {
+      // 이미 좋아요를 누른 경우 좋아요 취소
+      await Likes.destroy({
+        where: {
+          PostId: postId,
+          UserId: userId,
+        },
+      });
+
+      return res.status(200).json({ message: '게시글의 좋아요를 취소했습니다.' });
+    }
+
+    // 좋아요 생성
+    await Likes.create({
       PostId: postId,
       UserId: userId,
-    },
-  });
+    });
 
-  if (like) {
-    return res.status(409).json({ message: '이미 좋아요를 누른 게시글입니다.' });
+    return res.status(201).json({ message: '게시글에 좋아요를 눌렀습니다.' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: '서버 오류입니다.' });
   }
-
-  await Like.create({
-    PostId: postId,
-    UserId: userId,
-  });
-
-  return res.status(201).json({ message: '게시글에 좋아요를 눌렀습니다.' });
 });
 
 module.exports = router;
