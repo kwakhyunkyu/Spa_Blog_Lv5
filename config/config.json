@@ -1,7 +1,7 @@
 {
   "development": {
     "username": "root",
-    "password": "gusrb0610",
+    "password": "gusrb0610!",
     "database": "spa_blog",
     "host": "express-database.cf1zh218ssts.ap-northeast-2.rds.amazonaws.com",
     "dialect": "mysql"
