@@ -1,6 +1,6 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Posts } = require('../models');
+const { Posts, Comments, Like } = require('../models');
 const authMiddleware = require('../middlewares/auth-middleware');
 const router = express.Router();
 
@@ -91,6 +91,81 @@ router.delete('/posts/:postId', authMiddleware, async (req, res) => {
   });
 
   return res.status(200).json({ data: '게시글이 삭제되었습니다.' });
+});
+
+router.post('/posts/:postId/comments', authMiddleware, async (req, res) => {
+  const { userId, nickname } = res.locals.user;
+  const { postId } = req.params;
+  const { comment } = req.body;
+
+  try {
+    // 게시글이 존재하는지 확인
+    const post = await Posts.findOne({ where: { postId } });
+    if (!post) {
+      return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
+    }
+
+    // 댓글 생성
+    const createdComment = await Comments.create({
+      UserId: userId,
+      PostId: postId,
+      Nickname: nickname,
+      comment,
+    });
+
+    return res.status(201).json({ data: createdComment });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: '서버 오류입니다.' });
+  }
+});
+
+// 댓글 목록 조회
+router.get('/posts/:postId/comments', async (req, res) => {
+  const { postId } = req.params;
+
+  try {
+    // 게시글이 존재하는지 확인
+    const post = await Posts.findOne({ where: { postId } });
+    if (!post) {
+      return res.status(404).json({ message: '게시글이 존재하지 않습니다.' });
+    }
+
+    // 댓글 목록 조회
+    const comments = await Comments.findAll({
+      where: { PostId: postId },
+      order: [['createdAt', 'DESC']],
+    });
+
+    return res.status(200).json({ data: comments });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: '서버 오류입니다.' });
+  }
+});
+
+// 좋아요 생성 API
+router.post('/posts/:postId/likes', authMiddleware, async (req, res) => {
+  const { userId } = res.locals.user;
+  const { postId } = req.params;
+
+  const like = await Like.findOne({
+    where: {
+      PostId: postId,
+      UserId: userId,
+    },
+  });
+
+  if (like) {
+    return res.status(409).json({ message: '이미 좋아요를 누른 게시글입니다.' });
+  }
+
+  await Like.create({
+    PostId: postId,
+    UserId: userId,
+  });
+
+  return res.status(201).json({ message: '게시글에 좋아요를 눌렀습니다.' });
 });
 
 module.exports = router;
