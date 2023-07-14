@@ -1,7 +1,7 @@
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const usersRouter = require('../routes/users.route');
-const postsRouter = require('../routes/posts.route');
+const usersRouter = require('./routes/users.route');
+const postsRouter = require('./routes/posts.route');
 const app = express();
 const PORT = 3018;
 
