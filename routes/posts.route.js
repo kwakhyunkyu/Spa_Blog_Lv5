@@ -1,6 +1,6 @@
 const express = require('express');
 const { Op } = require('sequelize');
-const { Posts } = require('../models');
+const { Posts, Likes } = require('../models');
 const authMiddleware = require('../middlewares/auth-middleware');
 const router = express.Router();
 
@@ -26,8 +26,19 @@ router.post('/posts', authMiddleware, async (req, res) => {
 // 게시글 목록 조회
 router.get('/posts', async (req, res) => {
   const posts = await Posts.findAll({
-    attributes: ['postId', 'UserId', 'Nickname', 'title', 'createdAt', 'updatedAt'],
-    order: [['createdAt', 'DESC']],
+    attributes: [
+      'postId',
+      'UserId',
+      'Nickname',
+      'title',
+      'createdAt',
+      'updatedAt',
+      [Posts.sequelize.literal('(SELECT COUNT(*) FROM Likes WHERE Likes.PostId = Posts.postId)'), 'likeCount'],
+    ],
+    order: [
+      [Posts.sequelize.literal('likeCount'), 'DESC'],
+      ['createdAt', 'DESC'],
+    ],
   });
 
   return res.status(200).json({ data: posts });
@@ -37,7 +48,16 @@ router.get('/posts', async (req, res) => {
 router.get('/posts/:postId', async (req, res) => {
   const { postId } = req.params;
   const post = await Posts.findOne({
-    attributes: ['postId', 'UserId', 'Nickname', 'title', 'content', 'createdAt', 'updatedAt'],
+    attributes: [
+      'postId',
+      'UserId',
+      'Nickname',
+      'title',
+      'content',
+      'createdAt',
+      'updatedAt',
+      [Posts.sequelize.literal('(SELECT COUNT(*) FROM Likes WHERE Likes.PostId = Posts.postId)'), 'likeCount'],
+    ],
     where: { postId },
   });
 
@@ -64,7 +84,7 @@ router.put('/posts/:postId', authMiddleware, async (req, res) => {
     { title, content }, // title과 content 컬럼을 수정합니다.
     {
       where: {
-        [Op.and]: [{ postId }, { UserId: userId }],
+        [Op.and]: [{ postId: postId }, { UserId: userId }],
       },
     }
   );
@@ -89,7 +109,7 @@ router.delete('/posts/:postId', authMiddleware, async (req, res) => {
   // 게시글의 권한을 확인하고, 게시글을 삭제합니다.
   await Posts.destroy({
     where: {
-      [Op.and]: [{ postId }, { UserId: userId }],
+      [Op.and]: [{ postId: postId }, { UserId: userId }],
     },
   });
 
