@@ -3,6 +3,12 @@ const { Users } = require('../models');
 
 module.exports = async (req, res, next) => {
   const { authorization } = req.cookies;
+  if (!authorization) {
+    return res.status(403).json({
+      message: '로그인이 필요합니다.',
+    });
+  }
+
   const [tokenType, token] = authorization.split(' ');
   if (tokenType !== 'Bearer' || !token) {
     return res.status(401).json({

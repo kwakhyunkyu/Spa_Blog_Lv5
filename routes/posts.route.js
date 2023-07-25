@@ -6,6 +6,9 @@ const router = express.Router();
 
 // 게시글 생성 API
 router.post('/posts', authMiddleware, async (req, res) => {
+  if (!res.locals.user) {
+    return res.status(401).json({ message: '로그인이 필요합니다.' });
+  }
   // 게시글을 생성하는 사용자의 정보를 가지고 올 것.
   const { userId, nickname } = res.locals.user;
   const { title, content } = req.body;
