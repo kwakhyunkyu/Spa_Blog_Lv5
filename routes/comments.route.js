@@ -4,7 +4,10 @@ const authMiddleware = require('../middlewares/auth-middleware');
 const router = express.Router();
 
 // 댓글 생성
-router.post('/posts/:postId/comments', authMiddleware, async (req, res) => {
+router.post('/comments/:postId', authMiddleware, async (req, res) => {
+  if (!res.locals.user) {
+    return res.status(401).json({ message: '로그인이 필요합니다.' });
+  }
   const { userId, nickname } = res.locals.user;
   const { postId } = req.params;
   const { comment } = req.body;
@@ -32,7 +35,7 @@ router.post('/posts/:postId/comments', authMiddleware, async (req, res) => {
 });
 
 // 댓글 목록 조회
-router.get('/posts/:postId/comments', async (req, res) => {
+router.get('/comments/:postId', async (req, res) => {
   const { postId } = req.params;
 
   try {
@@ -56,7 +59,7 @@ router.get('/posts/:postId/comments', async (req, res) => {
 });
 
 // 댓글 수정 API
-router.put('/posts/:postId/comments/:commentId', authMiddleware, async (req, res) => {
+router.put('/comments/:postId/:commentId', authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { postId, commentId } = req.params;
   const { comment } = req.body;
@@ -89,7 +92,7 @@ router.put('/posts/:postId/comments/:commentId', authMiddleware, async (req, res
 });
 
 // 댓글 삭제 API
-router.delete('/posts/:postId/comments/:commentId', authMiddleware, async (req, res) => {
+router.delete('/comments/:postId/:commentId', authMiddleware, async (req, res) => {
   const { userId } = res.locals.user;
   const { postId, commentId } = req.params;
 
@@ -114,3 +117,5 @@ router.delete('/posts/:postId/comments/:commentId', authMiddleware, async (req, 
     return res.status(500).json({ message: '서버 오류입니다.' });
   }
 });
+
+module.exports = router;

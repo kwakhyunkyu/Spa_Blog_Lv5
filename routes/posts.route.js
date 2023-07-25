@@ -6,6 +6,9 @@ const router = express.Router();
 
 // 게시글 생성 API
 router.post('/posts', authMiddleware, async (req, res) => {
+  if (!res.locals.user) {
+    return res.status(401).json({ message: '로그인이 필요합니다.' });
+  }
   // 게시글을 생성하는 사용자의 정보를 가지고 올 것.
   const { userId, nickname } = res.locals.user;
   const { title, content } = req.body;
@@ -23,8 +26,19 @@ router.post('/posts', authMiddleware, async (req, res) => {
 // 게시글 목록 조회
 router.get('/posts', async (req, res) => {
   const posts = await Posts.findAll({
-    attributes: ['postId', 'UserId', 'Nickname', 'title', 'createdAt', 'updatedAt'],
-    order: [['createdAt', 'DESC']],
+    attributes: [
+      'postId',
+      'UserId',
+      'Nickname',
+      'title',
+      'createdAt',
+      'updatedAt',
+      [Posts.sequelize.literal('(SELECT COUNT(*) FROM Likes WHERE Likes.PostId = Posts.postId)'), 'likeCount'],
+    ],
+    order: [
+      [Posts.sequelize.literal('likeCount'), 'DESC'],
+      ['createdAt', 'DESC'],
+    ],
   });
 
   return res.status(200).json({ data: posts });
@@ -34,7 +48,16 @@ router.get('/posts', async (req, res) => {
 router.get('/posts/:postId', async (req, res) => {
   const { postId } = req.params;
   const post = await Posts.findOne({
-    attributes: ['postId', 'UserId', 'Nickname', 'title', 'content', 'createdAt', 'updatedAt'],
+    attributes: [
+      'postId',
+      'UserId',
+      'Nickname',
+      'title',
+      'content',
+      'createdAt',
+      'updatedAt',
+      [Posts.sequelize.literal('(SELECT COUNT(*) FROM Likes WHERE Likes.PostId = Posts.postId)'), 'likeCount'],
+    ],
     where: { postId },
   });
 
@@ -61,7 +84,7 @@ router.put('/posts/:postId', authMiddleware, async (req, res) => {
     { title, content }, // title과 content 컬럼을 수정합니다.
     {
       where: {
-        [Op.and]: [{ postId }, { UserId: userId }],
+        [Op.and]: [{ postId: postId }, { UserId: userId }],
       },
     }
   );
@@ -86,49 +109,11 @@ router.delete('/posts/:postId', authMiddleware, async (req, res) => {
   // 게시글의 권한을 확인하고, 게시글을 삭제합니다.
   await Posts.destroy({
     where: {
-      [Op.and]: [{ postId }, { UserId: userId }],
+      [Op.and]: [{ postId: postId }, { UserId: userId }],
     },
   });
 
   return res.status(200).json({ data: '게시글이 삭제되었습니다.' });
-});
-
-// 좋아요 생성 또는 취소 API
-router.post('/posts/:postId/likes', authMiddleware, async (req, res) => {
-  const { userId } = res.locals.user;
-  const { postId } = req.params;
-
-  try {
-    const existingLike = await Likes.findOne({
-      where: {
-        PostId: postId,
-        UserId: userId,
-      },
-    });
-
-    if (existingLike) {
-      // 이미 좋아요를 누른 경우 좋아요 취소
-      await Likes.destroy({
-        where: {
-          PostId: postId,
-          UserId: userId,
-        },
-      });
-
-      return res.status(200).json({ message: '게시글의 좋아요를 취소했습니다.' });
-    }
-
-    // 좋아요 생성
-    await Likes.create({
-      PostId: postId,
-      UserId: userId,
-    });
-
-    return res.status(201).json({ message: '게시글에 좋아요를 눌렀습니다.' });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ message: '서버 오류입니다.' });
-  }
 });
 
 module.exports = router;
