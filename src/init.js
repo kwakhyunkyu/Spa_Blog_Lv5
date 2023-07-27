@@ -5,7 +5,7 @@ import commentsRouter from './routes/comments.route';
 import likesRouter from './routes/likes.route';
 
 export default function init(app) {
-  db.connect(); // Assuming db.js exports a connect function to establish a database connection
+  db.connect();
 
   app.use('/', [usersRouter, postsRouter, commentsRouter, likesRouter]);
 }
